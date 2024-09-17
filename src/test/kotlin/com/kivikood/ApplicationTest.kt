@@ -12,7 +12,7 @@ class ApplicationTest {
     fun testRoot() = testApplication {
         client.get("/").apply {
             assertEquals(HttpStatusCode.OK, status)
-            assertEquals("Hello World!", bodyAsText())
+            assertEquals("You found the image!", bodyAsText())
         }
     }
 }

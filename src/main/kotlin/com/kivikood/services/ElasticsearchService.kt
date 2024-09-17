@@ -50,7 +50,6 @@ class ElasticsearchService(hostname: String = elasticHost, port: Int = elasticPo
         return response.hits().hits().map { it.source()?.word?.trim('"') ?: "" }.toList()
     }
 
-    // Search for words with criteria
     fun searchWithCriteria(criteria: SearchCriteria): List<String> {
         val boolQuery = BoolQuery.Builder()
 
@@ -120,7 +119,6 @@ class ElasticsearchService(hostname: String = elasticHost, port: Int = elasticPo
         return response.hits().hits().map { it.source()?.word?.trim('"') ?: "" }.toList()
     }
 
-    // Add a single word to Elasticsearch
     fun addWord(word: String, language: String): IndexResponse {
         // Use a composite key (language + word) to enforce uniqueness per language
         val wordDocument = WordDocument("$language-$word", word, language)
@@ -137,7 +135,6 @@ class ElasticsearchService(hostname: String = elasticHost, port: Int = elasticPo
         }
     }
 
-    // Perform bulk insertion in Elasticsearch
     fun bulkAddWords(words: List<String>, language: String): String {
         val bulkRequest = BulkRequest.Builder().apply {
             words.forEach { word ->
@@ -170,8 +167,4 @@ class ElasticsearchService(hostname: String = elasticHost, port: Int = elasticPo
         return responseMessage
     }
 
-
-    fun close() {
-        restClient.close()
-    }
 }

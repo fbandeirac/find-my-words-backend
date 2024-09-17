@@ -9,13 +9,20 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-
+import java.io.File
 
 
 fun Application.configureRouting(esService: ElasticsearchService = ElasticsearchService()) {
     routing {
         get("/") {
-            call.respondText("Hello World!")
+            val imageFile = File("resources/como-foi.jpg")
+            val message = "You found the image!"
+            if (imageFile.exists()) {
+                call.respondFile(imageFile, message)
+            } else {
+                call.respond(HttpStatusCode.OK, message)
+            }
+
         }
 
         post("/search") {
@@ -35,13 +42,11 @@ fun Application.configureRouting(esService: ElasticsearchService = Elasticsearch
             }
         }
 
-        // Endpoint to add a word to Elasticsearch
         post("/add-word") {
             val token = call.request.headers["Authorization"]?.removePrefix("Bearer ")
             if (token == null || token != addWordToken) {
                 return@post call.respondText("Invalid or missing token", status = HttpStatusCode.Unauthorized)
             }
-            // Receive the word and language from the request body
             val request = call.receive<Map<String, String>>()
             val word =
                 request["word"] ?: return@post call.respondText("Missing word", status = HttpStatusCode.BadRequest)
@@ -51,13 +56,10 @@ fun Application.configureRouting(esService: ElasticsearchService = Elasticsearch
             )
 
             try {
-                // Add the word to Elasticsearch
                 val response = esService.addWord(word, language)
 
-                // Respond with the document ID
                 call.respondText("Word added with ID: ${response.id()}")
             } catch (e: Exception) {
-                // Handle case where the word already exists for the language
                 if (e.message?.contains("version_conflict_engine_exception") == true) {
                     call.respondText("Word already exists in the language $language", status = HttpStatusCode.Conflict)
                 } else {
@@ -66,10 +68,8 @@ fun Application.configureRouting(esService: ElasticsearchService = Elasticsearch
             }
         }
 
-        // Search with criteria
         post("/search-with-criteria") {
 
-            // Receive search criteria from request body
             val searchCriteria = call.receive<SearchCriteria>()
 
             val language = searchCriteria.language ?: return@post call.respondText(
@@ -77,7 +77,6 @@ fun Application.configureRouting(esService: ElasticsearchService = Elasticsearch
                 status = HttpStatusCode.BadRequest
             )
 
-            // Perform the search operation with criteria
             val words = esService.searchWithCriteria(searchCriteria)
 
             if (words.isNotEmpty()) {
@@ -87,7 +86,6 @@ fun Application.configureRouting(esService: ElasticsearchService = Elasticsearch
             }
         }
 
-        // Bulk insert words
         post("/bulk/{language}") {
             val token = call.request.headers["Authorization"]?.removePrefix("Bearer ")
             if (token == null || token != addWordToken) {
@@ -101,7 +99,6 @@ fun Application.configureRouting(esService: ElasticsearchService = Elasticsearch
             val multipart = call.receiveMultipart()
 
             var words = listOf<String>()
-            // Read the file from the multipart form data
             multipart.forEachPart { part ->
                 if (part is PartData.FileItem) {
                     val fileBytes = part.streamProvider().readBytes()
